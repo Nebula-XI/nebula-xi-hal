@@ -34,6 +34,8 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
 
 xdma::~xdma()
 {
+    if (d_ptr == nullptr)
+        return;
     CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_control));
     CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_user));
 };

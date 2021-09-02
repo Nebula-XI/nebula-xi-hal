@@ -8,7 +8,7 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 
-xdma::xdma(std::string const& path, xdma_additional_info const hw_info)
+xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
 {
     auto control_name = path + "_control"; // канал управления `DMA/Bridge PCI Express`
     d_ptr->handle_control = open(control_name.c_str(), O_RDWR);
@@ -25,6 +25,8 @@ xdma::xdma(std::string const& path, xdma_additional_info const hw_info)
 
 xdma::~xdma()
 {
+    if (d_ptr == nullptr)
+        return;
     close(d_ptr->handle_control);
     close(d_ptr->handle_user);
 };

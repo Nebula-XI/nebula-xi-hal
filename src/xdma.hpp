@@ -31,18 +31,16 @@ class xdma {
     std::unique_ptr<xdma_data> d_ptr = { std::make_unique<xdma_data>() };
 
 public:
-    // копирование зпрещаем
-    xdma(xdma const&) = delete;
-    xdma& operator=(const xdma&) = delete;
-    // перемещение разрешаем
-    xdma(xdma&&) = default;
-    xdma& operator=(xdma&&) = default;
+    static auto get_device_paths() -> std::vector<std::pair<std::string const, xdma_additional_info const>>;
 
     xdma() = delete;
     xdma(std::string const& path, xdma_additional_info const& hw_info);
     ~xdma();
 
-    static auto get_device_paths() -> std::vector<std::pair<std::string const, xdma_additional_info const>>;
+    xdma(xdma const&) = delete; // копирование запрещаем
+    xdma& operator=(const xdma&) = delete; // копирование запрещаем
+    xdma(xdma&&) = default; // перемещение разрешаем
+    xdma& operator=(xdma&&) = default; // перемещение разрешаем
 
     auto pcie_reg_read(size_t offset) -> uint32_t;
     auto pcie_reg_write(size_t offset, uint32_t value) -> void;
