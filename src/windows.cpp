@@ -30,6 +30,7 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
     d_ptr->handle_user = reinterpret_cast<ssize_t>(handle);
 
     d_ptr->hw_info = hw_info;
+    d_ptr->dev_path = path;
 }
 
 xdma::~xdma()
@@ -65,7 +66,7 @@ auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_a
         dev_data.cbSize = sizeof(SP_DEVINFO_DATA);
         SetupDiGetDeviceInterfaceDetailA(dev_info, &dev_interface, dev_detail, detail_len, nullptr, &dev_data);
 
-        // полочим расположение платы на шине
+        // получим расположение платы на шине
         uint32_t bus, addr, slot;
         SetupDiGetDeviceRegistryPropertyA(dev_info, &dev_data, SPDRP_BUSNUMBER, nullptr, PBYTE(&bus), sizeof(bus), nullptr);
         SetupDiGetDeviceRegistryPropertyA(dev_info, &dev_data, SPDRP_ADDRESS, nullptr, PBYTE(&addr), sizeof(addr), nullptr);

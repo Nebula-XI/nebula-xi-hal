@@ -21,6 +21,7 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
         throw std::runtime_error("[ XDMA ] Can't open file: \"" + user_name + "\"");
 
     d_ptr->hw_info = hw_info;
+    d_ptr->dev_path = path;
 }
 
 xdma::~xdma()

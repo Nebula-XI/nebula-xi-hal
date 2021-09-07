@@ -22,6 +22,7 @@ struct xdma_additional_info {
 };
 
 struct xdma_data {
+    std::string dev_path {}; // путь к плате
     int handle_control { -1 }; // канал управления `DMA/Bridge PCI Express`
     int handle_user { -1 }; // канал управления устройствами на шине `AXI Lite`
     xdma_additional_info hw_info {}; // информация о плате
@@ -51,4 +52,5 @@ public:
     auto get_vendor_id() { return d_ptr->hw_info.vendor; }
     auto get_device_id() { return d_ptr->hw_info.device; }
     auto const get_pci_location() { return std::to_string(d_ptr->hw_info.bus) + "." + std::to_string(d_ptr->hw_info.dev) + "." + std::to_string(d_ptr->hw_info.func); }
+    auto const get_device_path() { return d_ptr->dev_path; }
 };
