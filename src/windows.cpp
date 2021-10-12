@@ -31,6 +31,19 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
 
     d_ptr->hw_info = hw_info;
     d_ptr->dev_path = path;
+
+    // каналы DMA
+    for (auto num : { 0, 1, 2, 3 }) {
+        auto name = path + "\\c2h_" + std::to_string(num);
+        auto handle = CreateFileA(name.c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        if (handle != INVALID_HANDLE_VALUE)
+            d_ptr->handle_c2h[num] = reinterpret_cast<ssize_t>(handle);
+
+        name = path + "\\h2c_" + std::to_string(num);
+        handle = CreateFileA(name.c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+        if (handle != INVALID_HANDLE_VALUE)
+            d_ptr->handle_h2c[num] = reinterpret_cast<ssize_t>(handle);
+    }
 }
 
 xdma::~xdma()
@@ -39,6 +52,11 @@ xdma::~xdma()
         return;
     CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_control));
     CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_user));
+
+    for (auto num : { 0, 1, 2, 3 }) {
+        CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_c2h[num]));
+        CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_h2c[num]));
+    }
 };
 
 // ----------------------------------------------------------------------------
@@ -134,4 +152,17 @@ auto xdma::axi_reg_write(size_t offset, uint32_t value) -> void
         throw std::runtime_error("[ AXI ] Invalid set offset");
     if (WriteFile(reinterpret_cast<HANDLE>(d_ptr->handle_user), &value, sizeof(value), nullptr, nullptr) == false)
         throw std::runtime_error("[ AXI ] Invalid write data");
+}
+
+auto xdma::c2h_read(size_t len, int num) -> std::vector<uint8_t>
+{
+    std::vector<uint8_t> buf {};
+    buf.resize(len);
+
+    DWORD read_bytes {};
+    if (ReadFile(reinterpret_cast<HANDLE>(d_ptr->handle_c2h[num]), buf.data(), buf.size(), &read_bytes, nullptr) == false)
+        throw std::runtime_error("[ C2H ] Invalid read data");
+
+    buf.resize(read_bytes);
+    return buf;
 }

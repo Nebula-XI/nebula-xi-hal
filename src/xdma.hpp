@@ -2,6 +2,7 @@
 // Работа с платами под XDMA драйвером
 // ----------------------------------------------------------------------------
 #pragma once
+#include <array>
 #include <cstdio>
 #include <memory>
 #include <stdexcept>
@@ -26,6 +27,8 @@ struct xdma_data {
     int handle_control { -1 }; // канал управления `DMA/Bridge PCI Express`
     int handle_user { -1 }; // канал управления устройствами на шине `AXI Lite`
     xdma_additional_info hw_info {}; // информация о плате
+    std::array<int, 4> handle_c2h { -1, -1, -1, -1 }; // каналы DMA Card To Host
+    std::array<int, 4> handle_h2c { -1, -1, -1, -1 }; // каналы DMA Host To Card
 };
 
 class xdma {
@@ -53,4 +56,6 @@ public:
     auto get_device_id() { return d_ptr->hw_info.device; }
     auto const get_pci_location() { return std::to_string(d_ptr->hw_info.bus) + "." + std::to_string(d_ptr->hw_info.dev) + "." + std::to_string(d_ptr->hw_info.func); }
     auto const get_device_path() { return d_ptr->dev_path; }
+
+    auto c2h_read(size_t len = 4096, int num = 0) -> std::vector<uint8_t>;
 };
