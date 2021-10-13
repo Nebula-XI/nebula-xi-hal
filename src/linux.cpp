@@ -25,10 +25,10 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
 
     // каналы DMA
     for (auto num : { 0, 1, 2, 3 }) {
-        auto name = path + "_c2h" + std::to_string(num);
+        auto name = path + "_c2h_" + std::to_string(num);
         d_ptr->handle_c2h[num] = open(name.c_str(), O_RDONLY | O_TRUNC); // using O_TRUNC to indicate to the driver to flush the data up based on EOP (end-of-packet)
 
-        name = path + "_h2c" + std::to_string(num);
+        name = path + "_h2c_" + std::to_string(num);
         d_ptr->handle_h2c[num] = open(name.c_str(), O_WRONLY | O_SYNC);
     }
 }
