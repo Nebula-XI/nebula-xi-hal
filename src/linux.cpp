@@ -22,6 +22,15 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
 
     d_ptr->hw_info = hw_info;
     d_ptr->dev_path = path;
+
+    // каналы DMA
+    for (auto num : { 0, 1, 2, 3 }) {
+        auto name = path + "_c2h" + std::to_string(num);
+        d_ptr->handle_c2h[num] = open(name.c_str(), O_RDONLY | O_TRUNC); // using O_TRUNC to indicate to the driver to flush the data up based on EOP (end-of-packet)
+
+        name = path + "_h2c" + std::to_string(num);
+        d_ptr->handle_h2c[num] = open(name.c_str(), O_WRONLY | O_SYNC);
+    }
 }
 
 xdma::~xdma()
@@ -30,6 +39,11 @@ xdma::~xdma()
         return;
     close(d_ptr->handle_control);
     close(d_ptr->handle_user);
+
+    for (auto num : { 0, 1, 2, 3 }) {
+        close(d_ptr->handle_c2h[num]);
+        close(d_ptr->handle_h2c[num]);
+    }
 };
 
 // ----------------------------------------------------------------------------
@@ -119,4 +133,16 @@ auto xdma::axi_reg_write(size_t offset, uint32_t value) -> void
 {
     if (pwrite(d_ptr->handle_user, &value, sizeof(value), offset) != sizeof(value))
         throw std::runtime_error("[ AXI ] Invalid write data");
+}
+
+// ----------------------------------------------------------------------------
+// Получение данных из DMA канала
+// ----------------------------------------------------------------------------
+auto xdma::c2h_read(size_t len, int num) -> std::vector<uint8_t>
+{
+    std::vector<uint8_t> buf {};
+    buf.resize(len);
+    auto read_bytes = read(d_ptr->handle_c2h[num], buf.data(), buf.size());
+    buf.resize(read_bytes);
+    return buf;
 }

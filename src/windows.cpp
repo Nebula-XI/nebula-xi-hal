@@ -154,6 +154,9 @@ auto xdma::axi_reg_write(size_t offset, uint32_t value) -> void
         throw std::runtime_error("[ AXI ] Invalid write data");
 }
 
+// ----------------------------------------------------------------------------
+// Получение данных из DMA канала
+// ----------------------------------------------------------------------------
 auto xdma::c2h_read(size_t len, int num) -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buf {};
