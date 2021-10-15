@@ -2,16 +2,11 @@
 // Вариант для Windows
 // ----------------------------------------------------------------------------
 #include "xdma.hpp"
-
 // clang-format off
 #include <windows.h>
 #include <initguid.h>
 #include <setupapi.h>
 // clang-format on
-#if defined(_MSC_VER)
-#include <BaseTsd.h>
-typedef SSIZE_T ssize_t;
-#endif
 
 DEFINE_GUID(GUID_DEVINTERFACE_XDMA, 0x74c7e4a9, 0x6d5d, 0x4a70, 0xbc, 0x0d, 0x20, 0x69, 0x1d, 0xff, 0x9e, 0x9d);
 
@@ -21,13 +16,13 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
     auto handle = CreateFileA(control_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     if (handle == INVALID_HANDLE_VALUE)
         throw std::runtime_error("[ XDMA ] Can't open file: \"" + control_name + "\"");
-    d_ptr->handle_control = reinterpret_cast<ssize_t>(handle);
+    d_ptr->file_control.handle = static_cast<int>(reinterpret_cast<size_t>(handle));
 
     auto user_name = path + "\\user"; // канал управления устройствами на шине `AXI Lite`
     handle = CreateFileA(user_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
     if (handle == INVALID_HANDLE_VALUE)
         throw std::runtime_error("[ XDMA ] Can't open file: \"" + user_name + "\"");
-    d_ptr->handle_user = reinterpret_cast<ssize_t>(handle);
+    d_ptr->file_user.handle = static_cast<int>(reinterpret_cast<size_t>(handle));
 
     d_ptr->hw_info = hw_info;
     d_ptr->dev_path = path;
@@ -37,12 +32,12 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
         auto name = path + "\\c2h_" + std::to_string(num);
         auto handle = CreateFileA(name.c_str(), GENERIC_READ, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
         if (handle != INVALID_HANDLE_VALUE)
-            d_ptr->handle_c2h[num] = reinterpret_cast<ssize_t>(handle);
+            d_ptr->file_c2h.at(num).handle = static_cast<int>(reinterpret_cast<size_t>(handle));
 
         name = path + "\\h2c_" + std::to_string(num);
         handle = CreateFileA(name.c_str(), GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
         if (handle != INVALID_HANDLE_VALUE)
-            d_ptr->handle_h2c[num] = reinterpret_cast<ssize_t>(handle);
+            d_ptr->file_h2c.at(num).handle = static_cast<int>(reinterpret_cast<size_t>(handle));
     }
 }
 
@@ -50,12 +45,12 @@ xdma::~xdma()
 {
     if (d_ptr == nullptr)
         return;
-    CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_control));
-    CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_user));
+    CloseHandle(reinterpret_cast<HANDLE>(d_ptr->file_control.handle));
+    CloseHandle(reinterpret_cast<HANDLE>(d_ptr->file_user.handle));
 
     for (auto num : { 0, 1, 2, 3 }) {
-        CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_c2h[num]));
-        CloseHandle(reinterpret_cast<HANDLE>(d_ptr->handle_h2c[num]));
+        CloseHandle(reinterpret_cast<HANDLE>(d_ptr->file_c2h.at(num).handle));
+        CloseHandle(reinterpret_cast<HANDLE>(d_ptr->file_h2c.at(num).handle));
     }
 };
 
@@ -103,67 +98,59 @@ auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_a
 }
 
 // ----------------------------------------------------------------------------
-// Чтение из PCI Express блока
+// Чтение регистра
 // ----------------------------------------------------------------------------
-auto xdma::pcie_reg_read(size_t offset) -> uint32_t
+auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 {
-    uint32_t value {};
+    file.mutex.lock();
+    auto result_offset = SetFilePointer(reinterpret_cast<HANDLE>(file.handle), offset, 0, FILE_BEGIN);
+    file.mutex.unlock();
+    if (result_offset == INVALID_SET_FILE_POINTER)
+        throw std::runtime_error("[ XDMA ] Invalid set offset");
 
-    if (SetFilePointer(reinterpret_cast<HANDLE>(d_ptr->handle_control), offset, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
-        throw std::runtime_error("[ PCIe ] Invalid set offset");
-    if (ReadFile(reinterpret_cast<HANDLE>(d_ptr->handle_control), &value, sizeof(value), nullptr, nullptr) == false)
-        throw std::runtime_error("[ PCIe ] Invalid read data");
+    uint32_t value {};
+    file.mutex.lock();
+    auto result_read = ReadFile(reinterpret_cast<HANDLE>(file.handle), &value, sizeof(value), nullptr, nullptr);
+    file.mutex.unlock();
+    if (result_read == false)
+        throw std::runtime_error("[ XDMA ] Invalid read data");
 
     return value;
 }
 
 // ----------------------------------------------------------------------------
-// Запись в PCI Express блок
+// Запись регистра
 // ----------------------------------------------------------------------------
-auto xdma::pcie_reg_write(size_t offset, uint32_t value) -> void
+void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
 {
-    if (SetFilePointer(reinterpret_cast<HANDLE>(d_ptr->handle_control), offset, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
-        throw std::runtime_error("[ PCIe ] Invalid set offset");
-    if (WriteFile(reinterpret_cast<HANDLE>(d_ptr->handle_control), &value, sizeof(value), nullptr, nullptr) == false)
-        throw std::runtime_error("[ PCIe ] Invalid write data");
-}
+    file.mutex.lock();
+    auto result_offset = SetFilePointer(reinterpret_cast<HANDLE>(file.handle), offset, 0, FILE_BEGIN);
+    file.mutex.unlock();
+    if (result_offset == INVALID_SET_FILE_POINTER)
+        throw std::runtime_error("[ XDMA ] Invalid set offset");
 
-// ----------------------------------------------------------------------------
-// Чтение на шине AXI
-// ----------------------------------------------------------------------------
-auto xdma::axi_reg_read(size_t offset) -> uint32_t
-{
-    uint32_t value {};
-
-    if (SetFilePointer(reinterpret_cast<HANDLE>(d_ptr->handle_user), offset, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
-        throw std::runtime_error("[ AXI ] Invalid set offset");
-    if (ReadFile(reinterpret_cast<HANDLE>(d_ptr->handle_user), &value, sizeof(value), nullptr, nullptr) == false)
-        throw std::runtime_error("[ AXI ] Invalid read data");
-
-    return value;
-}
-
-// ----------------------------------------------------------------------------
-// Запись на шине AXI
-// ----------------------------------------------------------------------------
-auto xdma::axi_reg_write(size_t offset, uint32_t value) -> void
-{
-    if (SetFilePointer(reinterpret_cast<HANDLE>(d_ptr->handle_user), offset, 0, FILE_BEGIN) == INVALID_SET_FILE_POINTER)
-        throw std::runtime_error("[ AXI ] Invalid set offset");
-    if (WriteFile(reinterpret_cast<HANDLE>(d_ptr->handle_user), &value, sizeof(value), nullptr, nullptr) == false)
-        throw std::runtime_error("[ AXI ] Invalid write data");
+    file.mutex.lock();
+    auto result_write = WriteFile(reinterpret_cast<HANDLE>(file.handle), &value, sizeof(value), nullptr, nullptr);
+    file.mutex.unlock();
+    if (result_write == false)
+        throw std::runtime_error("[ XDMA ] Invalid write data");
 }
 
 // ----------------------------------------------------------------------------
 // Получение данных из DMA канала
 // ----------------------------------------------------------------------------
-auto xdma::c2h_read(size_t len, int num) -> std::vector<uint8_t>
+// TODO: сделать каналы в виде enum, чтобы нельзя было передать значение больше четырёх
+auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buf {};
     buf.resize(len);
 
     DWORD read_bytes {};
-    if (ReadFile(reinterpret_cast<HANDLE>(d_ptr->handle_c2h[num]), buf.data(), buf.size(), &read_bytes, nullptr) == false)
+
+    d_ptr->file_c2h.at(ch_num).mutex.lock();
+    auto result_read = ReadFile(reinterpret_cast<HANDLE>(d_ptr->file_c2h.at(ch_num).handle), buf.data(), buf.size(), &read_bytes, nullptr);
+    d_ptr->file_c2h.at(ch_num).mutex.unlock();
+    if (result_read == false)
         throw std::runtime_error("[ C2H ] Invalid read data");
 
     buf.resize(read_bytes);

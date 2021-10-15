@@ -1,1 +1,1 @@
-## Library for XDMA driver
+## HAL Library for XDMA driver

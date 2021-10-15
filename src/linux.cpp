@@ -11,14 +11,16 @@
 xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
 {
     auto control_name = path + "_control"; // канал управления `DMA/Bridge PCI Express`
-    d_ptr->handle_control = open(control_name.c_str(), O_RDWR);
-    if (d_ptr->handle_control == EOF)
+    auto handle = open(control_name.c_str(), O_RDWR);
+    if (handle == EOF)
         throw std::runtime_error("[ XDMA ] Can't open file: \"" + control_name + "\"");
+    d_ptr->file_control.handle = handle;
 
     auto user_name = path + "_user"; // канал управления устройствами на шине `AXI Lite`
-    d_ptr->handle_user = open(user_name.c_str(), O_RDWR);
-    if (d_ptr->handle_user == EOF)
+    handle = open(user_name.c_str(), O_RDWR);
+    if (handle == EOF)
         throw std::runtime_error("[ XDMA ] Can't open file: \"" + user_name + "\"");
+    d_ptr->file_user.handle = handle;
 
     d_ptr->hw_info = hw_info;
     d_ptr->dev_path = path;
@@ -26,10 +28,10 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
     // каналы DMA
     for (auto num : { 0, 1, 2, 3 }) {
         auto name = path + "_c2h_" + std::to_string(num);
-        d_ptr->handle_c2h[num] = open(name.c_str(), O_RDONLY | O_TRUNC); // using O_TRUNC to indicate to the driver to flush the data up based on EOP (end-of-packet)
+        d_ptr->file_c2h.at(num).handle = open(name.c_str(), O_RDONLY | O_TRUNC); // using O_TRUNC to indicate to the driver to flush the data up based on EOP (end-of-packet)
 
         name = path + "_h2c_" + std::to_string(num);
-        d_ptr->handle_h2c[num] = open(name.c_str(), O_WRONLY | O_SYNC);
+        d_ptr->file_h2c.at(num).handle = open(name.c_str(), O_WRONLY | O_SYNC);
     }
 }
 
@@ -37,12 +39,12 @@ xdma::~xdma()
 {
     if (d_ptr == nullptr)
         return;
-    close(d_ptr->handle_control);
-    close(d_ptr->handle_user);
+    close(d_ptr->file_control.handle);
+    close(d_ptr->file_user.handle);
 
     for (auto num : { 0, 1, 2, 3 }) {
-        close(d_ptr->handle_c2h[num]);
-        close(d_ptr->handle_h2c[num]);
+        close(d_ptr->file_c2h.at(num).handle);
+        close(d_ptr->file_h2c.at(num).handle);
     }
 };
 
@@ -92,57 +94,46 @@ auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_a
 }
 
 // ----------------------------------------------------------------------------
-// Чтение из PCI Express блока
+// Чтение регистра
 // ----------------------------------------------------------------------------
-auto xdma::pcie_reg_read(size_t offset) -> uint32_t
+auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 {
     uint32_t value {};
 
-    if (pread(d_ptr->handle_control, &value, sizeof(value), offset) != sizeof(value))
-        throw std::runtime_error("[ PCIe ] Invalid read data");
+    file.mutex.lock();
+    auto result_read = pread(file.handle, &value, sizeof(value), offset);
+    file.mutex.unlock();
+    if (result_read != sizeof(value))
+        throw std::runtime_error("[ XDMA ] Invalid read data");
 
     return value;
 }
 
 // ----------------------------------------------------------------------------
-// Запись в PCI Express блок
+// Запись регистра
 // ----------------------------------------------------------------------------
-auto xdma::pcie_reg_write(size_t offset, uint32_t value) -> void
+void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
 {
-    if (pwrite(d_ptr->handle_control, &value, sizeof(value), offset) != sizeof(value))
-        throw std::runtime_error("[ PCIe ] Invalid write data");
-}
-
-// ----------------------------------------------------------------------------
-// Чтение на шине AXI
-// ----------------------------------------------------------------------------
-auto xdma::axi_reg_read(size_t offset) -> uint32_t
-{
-    uint32_t value {};
-
-    if (pread(d_ptr->handle_user, &value, sizeof(value), offset) != sizeof(value))
-        throw std::runtime_error("[ AXI ] Invalid read data");
-
-    return value;
-}
-
-// ----------------------------------------------------------------------------
-// Запись на шине AXI
-// ----------------------------------------------------------------------------
-auto xdma::axi_reg_write(size_t offset, uint32_t value) -> void
-{
-    if (pwrite(d_ptr->handle_user, &value, sizeof(value), offset) != sizeof(value))
-        throw std::runtime_error("[ AXI ] Invalid write data");
+    file.mutex.lock();
+    auto result_write = pwrite(file.handle, &value, sizeof(value), offset);
+    file.mutex.unlock();
+    if (result_write != sizeof(value))
+        throw std::runtime_error("[ XDMA ] Invalid write data");
 }
 
 // ----------------------------------------------------------------------------
 // Получение данных из DMA канала
 // ----------------------------------------------------------------------------
-auto xdma::c2h_read(size_t len, int num) -> std::vector<uint8_t>
+// TODO: сделать каналы в виде enum, чтобы нельзя было передать значение больше четырёх
+auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buf {};
     buf.resize(len);
-    auto read_bytes = read(d_ptr->handle_c2h[num], buf.data(), buf.size());
+
+    d_ptr->file_c2h.at(ch_num).mutex.lock();
+    auto read_bytes = read(d_ptr->file_c2h.at(ch_num).handle, buf.data(), buf.size());
+    d_ptr->file_c2h.at(ch_num).mutex.unlock();
+
     buf.resize(read_bytes);
     return buf;
 }

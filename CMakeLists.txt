@@ -1,8 +1,8 @@
 # -----------------------------------------------------------------------------
-# XDMA HAL Library
+# HAL XDMA Library
 # -----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.19)
-project(xdma)
+project(hal_xdma)
 
 set(PROJECT_COMPILE_FEATURES cxx_std_17)
 # set(PROJECT_COMPILE_OPTIONS -Wall)
