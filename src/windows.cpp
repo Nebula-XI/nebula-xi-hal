@@ -140,12 +140,10 @@ auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buf {};
     buf.resize(len);
+    const std::lock_guard<std::mutex> lock(d_ptr->file_c2h.at(ch_num).mutex);
 
     DWORD read_bytes {};
-
-    d_ptr->file_c2h.at(ch_num).mutex.lock();
     auto result_read = ReadFile(reinterpret_cast<HANDLE>(d_ptr->file_c2h.at(ch_num).handle), buf.data(), buf.size(), &read_bytes, nullptr);
-    d_ptr->file_c2h.at(ch_num).mutex.unlock();
     if (result_read == false)
         throw std::runtime_error("[ C2H ] Invalid read data");
 

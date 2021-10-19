@@ -98,11 +98,10 @@ auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_a
 // ----------------------------------------------------------------------------
 auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 {
+    const std::lock_guard<std::mutex> lock(file.mutex);
     uint32_t value {};
 
-    file.mutex.lock();
     auto result_read = pread(file.handle, &value, sizeof(value), offset);
-    file.mutex.unlock();
     if (result_read != sizeof(value))
         throw std::runtime_error("[ XDMA ] Invalid read data");
 
@@ -114,9 +113,9 @@ auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 // ----------------------------------------------------------------------------
 void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
 {
-    file.mutex.lock();
+    const std::lock_guard<std::mutex> lock(file.mutex);
+
     auto result_write = pwrite(file.handle, &value, sizeof(value), offset);
-    file.mutex.unlock();
     if (result_write != sizeof(value))
         throw std::runtime_error("[ XDMA ] Invalid write data");
 }
@@ -129,11 +128,9 @@ auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buf {};
     buf.resize(len);
+    const std::lock_guard<std::mutex> lock(d_ptr->file_c2h.at(ch_num).mutex);
 
-    d_ptr->file_c2h.at(ch_num).mutex.lock();
     auto read_bytes = read(d_ptr->file_c2h.at(ch_num).handle, buf.data(), buf.size());
-    d_ptr->file_c2h.at(ch_num).mutex.unlock();
-
     buf.resize(read_bytes);
     return buf;
 }
