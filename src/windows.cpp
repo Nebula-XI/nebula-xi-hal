@@ -102,16 +102,14 @@ auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_a
 // ----------------------------------------------------------------------------
 auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 {
-    file.mutex.lock();
+    const std::lock_guard<std::mutex> lock(file.mutex);
+
     auto result_offset = SetFilePointer(reinterpret_cast<HANDLE>(file.handle), offset, 0, FILE_BEGIN);
-    file.mutex.unlock();
     if (result_offset == INVALID_SET_FILE_POINTER)
         throw std::runtime_error("[ XDMA ] Invalid set offset");
 
     uint32_t value {};
-    file.mutex.lock();
     auto result_read = ReadFile(reinterpret_cast<HANDLE>(file.handle), &value, sizeof(value), nullptr, nullptr);
-    file.mutex.unlock();
     if (result_read == false)
         throw std::runtime_error("[ XDMA ] Invalid read data");
 
@@ -123,15 +121,13 @@ auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 // ----------------------------------------------------------------------------
 void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
 {
-    file.mutex.lock();
+    const std::lock_guard<std::mutex> lock(file.mutex);
+
     auto result_offset = SetFilePointer(reinterpret_cast<HANDLE>(file.handle), offset, 0, FILE_BEGIN);
-    file.mutex.unlock();
     if (result_offset == INVALID_SET_FILE_POINTER)
         throw std::runtime_error("[ XDMA ] Invalid set offset");
 
-    file.mutex.lock();
     auto result_write = WriteFile(reinterpret_cast<HANDLE>(file.handle), &value, sizeof(value), nullptr, nullptr);
-    file.mutex.unlock();
     if (result_write == false)
         throw std::runtime_error("[ XDMA ] Invalid write data");
 }
