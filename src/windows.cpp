@@ -150,3 +150,22 @@ auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
     buf.resize(read_bytes);
     return buf;
 }
+
+// ----------------------------------------------------------------------------
+// Чтение CFGROM
+// ----------------------------------------------------------------------------
+auto xdma::get_cfgrom() -> std::vector<uint8_t>
+{
+    std::vector<uint8_t> cfgrom(16384, 0);
+    DWORD read_bytes {};
+
+    const std::lock_guard<std::mutex> lock(d_ptr->file_user.mutex);
+    auto result_offset = SetFilePointer(reinterpret_cast<HANDLE>(d_ptr->file_user.handle), 0, 0, FILE_BEGIN);
+    auto result_read = ReadFile(reinterpret_cast<HANDLE>(d_ptr->file_user.handle), cfgrom.data(), cfgrom.size(), &read_bytes, nullptr);
+
+    if ((result_offset == INVALID_SET_FILE_POINTER) || (result_read == false))
+        throw std::runtime_error("[ XDMA ] Invalid read data from CFGROM");
+
+    cfgrom.resize(read_bytes);
+    return cfgrom;
+}

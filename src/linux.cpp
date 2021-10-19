@@ -134,3 +134,17 @@ auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
     buf.resize(read_bytes);
     return buf;
 }
+
+// ----------------------------------------------------------------------------
+// Чтение CFGROM
+// ----------------------------------------------------------------------------
+auto xdma::get_cfgrom() -> std::vector<uint8_t>
+{
+    std::vector<uint8_t> cfgrom(16384, 0);
+
+    const std::lock_guard<std::mutex> lock(d_ptr->file_user.mutex);
+    auto read_bytes = pread(d_ptr->file_user.handle, cfgrom.data(), cfgrom.size(), 0);
+
+    cfgrom.resize(read_bytes);
+    return cfgrom;
+}
