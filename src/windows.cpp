@@ -1,16 +1,16 @@
 // ----------------------------------------------------------------------------
 // Вариант для Windows
 // ----------------------------------------------------------------------------
-#include "xdma.hpp"
 // clang-format off
 #include <windows.h>
 #include <initguid.h>
 #include <setupapi.h>
 // clang-format on
+#include <xdma_hal.hpp>
 
 DEFINE_GUID(GUID_DEVINTERFACE_XDMA, 0x74c7e4a9, 0x6d5d, 0x4a70, 0xbc, 0x0d, 0x20, 0x69, 0x1d, 0xff, 0x9e, 0x9d);
 
-xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
+xdma_hal::xdma_hal(std::string const& path, xdma_additional_info const& hw_info)
 {
     auto control_name = path + "\\control"; // канал управления `DMA/Bridge PCI Express`
     auto handle = CreateFileA(control_name.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
@@ -41,7 +41,7 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
     }
 }
 
-xdma::~xdma()
+xdma_hal::~xdma_hal()
 {
     if (d_ptr == nullptr)
         return;
@@ -57,13 +57,13 @@ xdma::~xdma()
 // ----------------------------------------------------------------------------
 // Поиск всех присутствующих плат
 // ----------------------------------------------------------------------------
-auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_additional_info const>>
+auto xdma_hal::get_device_paths() -> std::vector<std::pair<std::string const, xdma_additional_info const>>
 {
     std::vector<std::pair<std::string const, xdma_additional_info const>> dev_paths {};
 
     auto dev_info = SetupDiGetClassDevsA(&GUID_DEVINTERFACE_XDMA, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
     if (dev_info == INVALID_HANDLE_VALUE)
-        return dev_paths;
+        throw std::runtime_error("No PCIe boards");
 
     SP_DEVICE_INTERFACE_DATA dev_interface {};
     dev_interface.cbSize = sizeof(SP_DEVICE_INTERFACE_DATA);
@@ -94,13 +94,16 @@ auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_a
     }
     SetupDiDestroyDeviceInfoList(dev_info);
 
-    return dev_paths;
+    if (dev_paths.empty())
+        throw std::runtime_error("No PCIe boards");
+    else
+        return dev_paths;
 }
 
 // ----------------------------------------------------------------------------
 // Чтение регистра
 // ----------------------------------------------------------------------------
-auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
+auto xdma_hal::reg_read(xdma_file& file, size_t offset) -> uint32_t
 {
     const std::lock_guard<std::mutex> lock(file.mutex);
 
@@ -119,7 +122,7 @@ auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 // ----------------------------------------------------------------------------
 // Запись регистра
 // ----------------------------------------------------------------------------
-void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
+void xdma_hal::reg_write(xdma_file& file, size_t offset, uint32_t value)
 {
     const std::lock_guard<std::mutex> lock(file.mutex);
 
@@ -136,7 +139,7 @@ void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
 // Получение данных из DMA канала
 // ----------------------------------------------------------------------------
 // TODO: сделать каналы в виде enum, чтобы нельзя было передать значение больше четырёх
-auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
+auto xdma_hal::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buf {};
     buf.resize(len);
@@ -149,23 +152,4 @@ auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
 
     buf.resize(read_bytes);
     return buf;
-}
-
-// ----------------------------------------------------------------------------
-// Чтение CFGROM
-// ----------------------------------------------------------------------------
-auto xdma::get_cfgrom() -> std::vector<uint8_t>
-{
-    std::vector<uint8_t> cfgrom(16384, 0);
-    DWORD read_bytes {};
-
-    const std::lock_guard<std::mutex> lock(d_ptr->file_user.mutex);
-    auto result_offset = SetFilePointer(reinterpret_cast<HANDLE>(d_ptr->file_user.handle), 0, 0, FILE_BEGIN);
-    auto result_read = ReadFile(reinterpret_cast<HANDLE>(d_ptr->file_user.handle), cfgrom.data(), cfgrom.size(), &read_bytes, nullptr);
-
-    if ((result_offset == INVALID_SET_FILE_POINTER) || (result_read == false))
-        throw std::runtime_error("[ XDMA ] Invalid read data from CFGROM");
-
-    cfgrom.resize(read_bytes);
-    return cfgrom;
 }

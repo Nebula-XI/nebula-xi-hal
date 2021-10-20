@@ -1,14 +1,13 @@
 // ----------------------------------------------------------------------------
 // Вариант для Linux
 // ----------------------------------------------------------------------------
-#include "xdma.hpp"
-
 #include <fcntl.h>
 #include <string.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
+#include <xdma_hal.hpp>
 
-xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
+xdma_hal::xdma_hal(std::string const& path, xdma_additional_info const& hw_info)
 {
     auto control_name = path + "_control"; // канал управления `DMA/Bridge PCI Express`
     auto handle = open(control_name.c_str(), O_RDWR);
@@ -35,7 +34,7 @@ xdma::xdma(std::string const& path, xdma_additional_info const& hw_info)
     }
 }
 
-xdma::~xdma()
+xdma_hal::~xdma_hal()
 {
     if (d_ptr == nullptr)
         return;
@@ -51,7 +50,7 @@ xdma::~xdma()
 // ----------------------------------------------------------------------------
 // Поиск всех присутствующих плат
 // ----------------------------------------------------------------------------
-auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_additional_info const>>
+auto xdma_hal::get_device_paths() -> std::vector<std::pair<std::string const, xdma_additional_info const>>
 {
     std::vector<std::pair<std::string const, xdma_additional_info const>> dev_paths {};
 
@@ -90,13 +89,16 @@ auto xdma::get_device_paths() -> std::vector<std::pair<std::string const, xdma_a
         dev_paths.emplace_back(dev_name, xdma_additional_info { xdma_ioc_info.vendor, xdma_ioc_info.device, xdma_ioc_info.bus, xdma_ioc_info.dev, xdma_ioc_info.func });
     }
 
-    return dev_paths;
+    if (dev_paths.empty())
+        throw std::runtime_error("No PCIe boards");
+    else
+        return dev_paths;
 }
 
 // ----------------------------------------------------------------------------
 // Чтение регистра
 // ----------------------------------------------------------------------------
-auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
+auto xdma_hal::reg_read(xdma_file& file, size_t offset) -> uint32_t
 {
     const std::lock_guard<std::mutex> lock(file.mutex);
     uint32_t value {};
@@ -111,7 +113,7 @@ auto xdma::reg_read(xdma_file& file, size_t offset) -> uint32_t
 // ----------------------------------------------------------------------------
 // Запись регистра
 // ----------------------------------------------------------------------------
-void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
+void xdma_hal::reg_write(xdma_file& file, size_t offset, uint32_t value)
 {
     const std::lock_guard<std::mutex> lock(file.mutex);
 
@@ -124,7 +126,7 @@ void xdma::reg_write(xdma_file& file, size_t offset, uint32_t value)
 // Получение данных из DMA канала
 // ----------------------------------------------------------------------------
 // TODO: сделать каналы в виде enum, чтобы нельзя было передать значение больше четырёх
-auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
+auto xdma_hal::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
 {
     std::vector<uint8_t> buf {};
     buf.resize(len);
@@ -133,18 +135,4 @@ auto xdma::dma_read(size_t ch_num, size_t len = 4096) -> std::vector<uint8_t>
     auto read_bytes = read(d_ptr->file_c2h.at(ch_num).handle, buf.data(), buf.size());
     buf.resize(read_bytes);
     return buf;
-}
-
-// ----------------------------------------------------------------------------
-// Чтение CFGROM
-// ----------------------------------------------------------------------------
-auto xdma::get_cfgrom() -> std::vector<uint8_t>
-{
-    std::vector<uint8_t> cfgrom(16384, 0);
-
-    const std::lock_guard<std::mutex> lock(d_ptr->file_user.mutex);
-    auto read_bytes = pread(d_ptr->file_user.handle, cfgrom.data(), cfgrom.size(), 0);
-
-    cfgrom.resize(read_bytes);
-    return cfgrom;
 }
