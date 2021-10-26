@@ -106,7 +106,6 @@ auto xdma_hal::reg_read(xdma_file& file, size_t offset) -> uint32_t
     auto result_read = pread(file.handle, &value, sizeof(value), offset);
     if (result_read != sizeof(value))
         throw std::runtime_error("[ XDMA ] Invalid read data");
-
     return value;
 }
 
