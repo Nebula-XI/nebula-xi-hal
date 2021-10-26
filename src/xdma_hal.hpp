@@ -73,7 +73,8 @@ public:
     auto get_cfgrom() -> std::vector<uint8_t>
     {
         std::vector<uint8_t> cfgrom {};
-        while (true) {
+        bool eof{};
+        while (!eof) {
             auto value = axi_reg_read(cfgrom.size());
             if (value == 0)
                 break;
@@ -81,6 +82,8 @@ public:
                 auto byte = (value & (0xFF << it)) >> it;
                 if (byte != 0)
                     cfgrom.push_back(byte);
+                else
+                    eof = true;
             }
         }
         return cfgrom;
