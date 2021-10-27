@@ -15,16 +15,6 @@ namespace detail {
 class hal_pcie final {
     std::unique_ptr<detail::pcie_data> d_ptr { std::make_unique<detail::pcie_data>() };
 
-public:
-    using unique_ptr = std::unique_ptr<hal_pcie>;
-
-    hal_pcie() = delete;
-    hal_pcie(const hal_pcie&) = delete;
-    hal_pcie& operator=(const hal_pcie&) = delete;
-    hal_pcie(hal_pcie&&) = default;
-    hal_pcie& operator=(hal_pcie&&) = default;
-    hal_pcie(const std::string& path, const device_info& dev_info) { open(path, dev_info); }
-    ~hal_pcie() noexcept { close(); }
     void open(const std::string& path, const device_info& dev_info)
     {
 #ifdef __linux__
@@ -53,6 +43,17 @@ public:
         CloseHandle(reinterpret_cast<HANDLE>(d_ptr->file_control.handle));
 #endif
     }
+
+public:
+    using unique_ptr = std::unique_ptr<hal_pcie>;
+
+    hal_pcie() = delete;
+    hal_pcie(const hal_pcie&) = delete;
+    hal_pcie& operator=(const hal_pcie&) = delete;
+    hal_pcie(hal_pcie&&) = default;
+    hal_pcie& operator=(hal_pcie&&) = default;
+    hal_pcie(const std::string& path, const device_info& dev_info) { open(path, dev_info); }
+    ~hal_pcie() noexcept { close(); }
     auto get_vendor_id() const noexcept { return d_ptr->dev_info.vendor; }
     auto get_device_id() const noexcept { return d_ptr->dev_info.device; }
     auto get_location() const noexcept

@@ -13,16 +13,6 @@ namespace detail {
 class hal_axi final {
     std::unique_ptr<detail::axi_data> d_ptr { std::make_unique<detail::axi_data>() };
 
-public:
-    using unique_ptr = std::unique_ptr<hal_axi>;
-
-    hal_axi() = delete;
-    hal_axi(const hal_axi&) = delete;
-    hal_axi& operator=(const hal_axi&) = delete;
-    hal_axi(hal_axi&&) = default;
-    hal_axi& operator=(hal_axi&&) = default;
-    hal_axi(const std::string& path) { open(path); }
-    ~hal_axi() noexcept { close(); }
     void open(const std::string& path)
     {
 #ifdef __linux__
@@ -47,24 +37,17 @@ public:
         CloseHandle(reinterpret_cast<HANDLE>(d_ptr->file_user.handle));
 #endif
     }
-    auto get_cfgrom() const
-    {
-        std::vector<uint8_t> cfgrom {};
-        bool eof {};
-        while (!eof) {
-            auto value = reg_read(cfgrom.size());
-            if (value == 0)
-                break;
-            for (auto it : { 0, 8, 16, 24 }) {
-                auto byte = (value & (0xFF << it)) >> it;
-                if (byte != 0)
-                    cfgrom.push_back(byte);
-                else
-                    eof = true;
-            }
-            return std::string { cfgrom.begin(), cfgrom.end() };
-        }
-    }
+
+public:
+    using unique_ptr = std::unique_ptr<hal_axi>;
+
+    hal_axi() = delete;
+    hal_axi(const hal_axi&) = delete;
+    hal_axi& operator=(const hal_axi&) = delete;
+    hal_axi(hal_axi&&) = default;
+    hal_axi& operator=(hal_axi&&) = default;
+    hal_axi(const std::string& path) { open(path); }
+    ~hal_axi() noexcept { close(); }
     auto reg_read(reg_offset offset) const -> reg_value { return io::reg_read(d_ptr->file_user, offset); }
     void reg_write(reg_offset offset, reg_value value) const { io::reg_write(d_ptr->file_user, offset, value); };
 };
