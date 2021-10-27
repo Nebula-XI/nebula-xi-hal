@@ -70,10 +70,10 @@ public:
     auto dma_read(size_t num, std::vector<uint8_t>& buffer) -> void;
 
     // Чтение CFGROM
-    auto get_cfgrom() -> std::vector<uint8_t>
+    auto get_cfgrom()
     {
         std::vector<uint8_t> cfgrom {};
-        bool eof{};
+        bool eof {};
         while (!eof) {
             auto value = axi_reg_read(cfgrom.size());
             if (value == 0)
@@ -86,6 +86,6 @@ public:
                     eof = true;
             }
         }
-        return cfgrom;
+        return std::string { cfgrom.begin(), cfgrom.end() };
     }
 };
