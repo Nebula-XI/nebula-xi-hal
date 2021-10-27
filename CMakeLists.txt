@@ -1,28 +1,24 @@
-# -----------------------------------------------------------------------------
-# XDMA HAL Library
-# -----------------------------------------------------------------------------
 cmake_minimum_required(VERSION 3.19)
-project(xdma_hal)
+project(nebula-xi-hal)
 
 set(PROJECT_COMPILE_FEATURES cxx_std_17)
-# set(PROJECT_COMPILE_OPTIONS -Wall)
-# set(PROJECT_COMPILE_OPTIONS ${PROJECT_COMPILE_OPTIONS} -Wno-c++98-compat -Wno-c++98-compat-pedantic)
-# set(PROJECT_COMPILE_OPTIONS ${PROJECT_COMPILE_OPTIONS} -Wno-global-constructors -Wno-exit-time-destructors -Wno-format-nonliteral -Wno-return-std-move)
 set(PROJECT_COMPILE_DEFINES)
 
-set(PROJECT_INCLUDE_DIRS ${PROJECT_SOURCE_DIR}/src)
+set(PROJECT_INCLUDE_DIRS
+	${PROJECT_SOURCE_DIR}
+	${PROJECT_SOURCE_DIR}/src
+)
 set(PROJECT_INCLUDES)
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
+
 if(WIN32)
-    set(PROJECT_SOURCES ${PROJECT_SOURCES} ${PROJECT_SOURCE_DIR}/src/windows.cpp)
+    set(PROJECT_SOURCES ${PROJECT_SOURCES} ${PROJECT_SOURCE_DIR}/src/xdma_windows.cpp)
     set(PROJECT_LINK_LIBRARIES setupapi)
 else()
-    set(PROJECT_SOURCES ${PROJECT_SOURCES} ${PROJECT_SOURCE_DIR}/src/linux.cpp)
+    set(PROJECT_SOURCES ${PROJECT_SOURCES} ${PROJECT_SOURCE_DIR}/src/xdma_linux.cpp)
 endif()
 
-# -----------------------------------------------------------------------------
-# Make Static Library
-# -----------------------------------------------------------------------------
 add_library(${PROJECT_NAME} STATIC)
 target_sources(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCES})
 

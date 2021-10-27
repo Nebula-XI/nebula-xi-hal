@@ -2,49 +2,42 @@
 // Работа с платами под XDMA драйвером
 // ----------------------------------------------------------------------------
 #pragma once
+
 #include <array>
 #include <cstdio>
 #include <memory>
-#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
-struct xdma_additional_info {
-    uint32_t vendor;
-    uint32_t device;
-    uint32_t bus;
-    uint32_t dev;
-    uint32_t func;
-};
+#include "nebulaxi/hal_axi.h"
+#include "nebulaxi/hal_dma.h"
+#include "nebulaxi/hal_pcie.h"
 
-struct xdma_file {
-    int handle;
-    std::mutex mutex;
-};
+namespace nebulaxi {
 
-struct xdma_data {
-    std::string dev_path {}; // путь к плате
-    xdma_additional_info hw_info {}; // информация о плате
+namespace detail {
+    struct xdma_data {
 
-    xdma_file file_control { -1, {} }; // канал управления `DMA/Bridge PCI Express`
-    xdma_file file_user { -1, {} }; // канал управления устройствами на шине `AXI Lite`
-    std::array<xdma_file, 4> file_c2h { -1, {}, -1, {}, -1, {}, -1, {} }; // каналы DMA Card To Host
-    std::array<xdma_file, 4> file_h2c { 1, {}, 1, {} }; // каналы DMA Host To Card
-};
+        std::array<device_file, 4> file_c2h { -1, {}, -1, {}, -1, {}, -1, {} }; // каналы DMA Card To Host
+        std::array<device_file, 4> file_h2c { 1, {}, 1, {} }; // каналы DMA Host To Card
+    };
+}
 
-class xdma_hal {
-    std::unique_ptr<xdma_data> d_ptr = { std::make_unique<xdma_data>() };
+class xdma_hal : public hal_dma {
+    std::unique_ptr<detail::xdma_data> m_dma { std::make_unique<detail::xdma_data>() };
+    hal_pcie::unique_ptr m_pcie {};
+    hal_axi::unique_ptr m_axi {};
 
-    auto reg_read(xdma_file& file, size_t offset) -> uint32_t;
-    void reg_write(xdma_file& file, size_t offset, uint32_t value);
+    auto reg_read(device_file& file, size_t offset) -> uint32_t;
+    void reg_write(device_file& file, size_t offset, uint32_t value);
 
 public:
     static auto
-    get_device_paths() -> std::vector<std::pair<std::string const, xdma_additional_info const>>;
+    get_device_paths() -> std::vector<std::pair<std::string const, device_info const>>;
 
     xdma_hal() = delete;
-    xdma_hal(std::string const& path, xdma_additional_info const& hw_info);
+    xdma_hal(std::string const& path, device_info const& dev_info);
     ~xdma_hal();
 
     xdma_hal(xdma_hal const&) = delete; // копирование запрещаем
@@ -52,40 +45,9 @@ public:
     xdma_hal(xdma_hal&&) = default; // перемещение разрешаем
     xdma_hal& operator=(xdma_hal&&) = default; // перемещение разрешаем
 
-    auto get_vendor_id() { return d_ptr->hw_info.vendor; }
-    auto get_device_id() { return d_ptr->hw_info.device; }
-    auto const get_pci_location() { return std::to_string(d_ptr->hw_info.bus) + std::to_string(d_ptr->hw_info.dev) + std::to_string(d_ptr->hw_info.func); }
-    auto const get_device_path() { return d_ptr->dev_path; }
-
-    // PCI Express | Чтение/Запись регистров
-    auto pcie_reg_read(size_t offset) { return reg_read(d_ptr->file_control, offset); };
-    void pcie_reg_write(size_t offset, uint32_t value) { reg_write(d_ptr->file_control, offset, value); };
-
-    // AXI | Чтение/Запись регистров
-    auto axi_reg_read(size_t offset) { return reg_read(d_ptr->file_user, offset); };
-    void axi_reg_write(size_t offset, uint32_t value) { reg_write(d_ptr->file_user, offset, value); };
-
     // DMA | Чтение/Запись потоков
-    auto dma_read(size_t num, size_t len) -> std::vector<uint8_t>;
-    auto dma_read(size_t num, std::vector<uint8_t>& buffer) -> void;
-
-    // Чтение CFGROM
-    auto get_cfgrom()
-    {
-        std::vector<uint8_t> cfgrom {};
-        bool eof {};
-        while (!eof) {
-            auto value = axi_reg_read(cfgrom.size());
-            if (value == 0)
-                break;
-            for (auto it : { 0, 8, 16, 24 }) {
-                auto byte = (value & (0xFF << it)) >> it;
-                if (byte != 0)
-                    cfgrom.push_back(byte);
-                else
-                    eof = true;
-            }
-        }
-        return std::string { cfgrom.begin(), cfgrom.end() };
-    }
+    auto read(dma_channel num, size_t len) const -> dma_buffer override;
+    auto write(dma_channel num, const dma_buffer& buffer) const -> void override;
 };
+
+}
