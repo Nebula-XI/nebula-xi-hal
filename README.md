@@ -1,6 +1,5 @@
 ## Hardware Abstraction Layer (HAL)
 
-[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/mit-license.php)
 [![CMake](https://github.com/Nebula-XI/nebula-xi-hal/actions/workflows/cmake.yml/badge.svg)](https://github.com/Nebula-XI/nebula-xi-hal/actions/workflows/cmake.yml)
 
 ## Requirements
