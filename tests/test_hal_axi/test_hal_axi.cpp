@@ -18,7 +18,7 @@ using namespace nebulaxi;
 
 static constexpr bool g_verbose { NEBULAXI_HAL_TEST_VERBOSE };
 
-CTEST(nebulaxi, cfgrom)
+CTEST(nebulaxi_hal, cfgrom)
 {
     auto get_cfgrom = [] {
         auto hal_axi = make_hal_axi("/dev/xdma0");
