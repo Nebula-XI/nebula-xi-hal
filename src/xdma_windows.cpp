@@ -13,8 +13,6 @@ using namespace nebulaxi;
 DEFINE_GUID(GUID_DEVINTERFACE_XDMA, 0x74c7e4a9, 0x6d5d, 0x4a70, 0xbc, 0x0d, 0x20, 0x69, 0x1d, 0xff, 0x9e, 0x9d);
 
 xdma_hal::xdma_hal(std::string const& path, device_info const& dev_info)
-    : m_pcie { make_hal_pcie(path, dev_info) }
-    , m_axi { make_hal_axi(path) }
 {
     for (auto num : { 0, 1, 2, 3 }) {
         auto name = path + "\\c2h_" + std::to_string(num);

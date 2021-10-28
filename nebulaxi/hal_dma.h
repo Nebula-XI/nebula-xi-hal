@@ -1,7 +1,6 @@
 #pragma once
 
-#include <memory>
-#include <vector>
+#include "nebulaxi/hal_io.h"
 
 namespace nebulaxi {
 
@@ -28,5 +27,11 @@ public:
     virtual auto read(dma_channel, size_t) const -> dma_buffer = 0;
     virtual void write(dma_channel, const dma_buffer&) const = 0;
 };
+
+template <typename dma_type>
+hal_dma::unique_ptr make_hal_dma(const std::string& path, const device_info& dev_info)
+{
+    return std::make_unique<dma_type>(path, dev_info);
+}
 
 }

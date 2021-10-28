@@ -10,9 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "nebulaxi/hal_axi.h"
 #include "nebulaxi/hal_dma.h"
-#include "nebulaxi/hal_pcie.h"
 
 namespace nebulaxi {
 
@@ -26,11 +24,6 @@ namespace detail {
 
 class xdma_hal : public hal_dma {
     std::unique_ptr<detail::xdma_data> m_dma { std::make_unique<detail::xdma_data>() };
-    hal_pcie::unique_ptr m_pcie {};
-    hal_axi::unique_ptr m_axi {};
-
-    auto reg_read(device_file& file, size_t offset) -> uint32_t;
-    void reg_write(device_file& file, size_t offset, uint32_t value);
 
 public:
     static auto

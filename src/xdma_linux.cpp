@@ -10,8 +10,6 @@
 using namespace nebulaxi;
 
 xdma_hal::xdma_hal(std::string const& path, device_info const& dev_info)
-    : m_pcie { make_hal_pcie(path, dev_info) }
-    , m_axi { make_hal_axi(path) }
 {
     for (auto num : { 0, 1, 2, 3 }) {
         auto name = path + "_c2h_" + std::to_string(num);
