@@ -4,7 +4,7 @@
 
 using namespace nebulaxi;
 
-void hal_pcie::open(const std::string& path, const device_info& dev_info)
+void hal_pcie::open(const device_path& path, const device_info& dev_info)
 {
     using namespace std::string_literals;
     auto control_name = path + "\\control";
@@ -23,7 +23,7 @@ void hal_pcie::close() const noexcept
     }
 }
 
-void hal_axi::open(const std::string& path)
+void hal_axi::open(const device_path& path)
 {
     using namespace std::string_literals;
     auto user_name = path + "\\user";
@@ -42,9 +42,9 @@ void hal_axi::close() const noexcept
 
 DEFINE_GUID(GUID_DEVINTERFACE_XDMA, 0x74c7e4a9, 0x6d5d, 0x4a70, 0xbc, 0x0d, 0x20, 0x69, 0x1d, 0xff, 0x9e, 0x9d);
 
-device_path_list get_device_paths()
+device_path_info_list hal_device::get_path_info_list()
 {
-    device_path_list dev_paths {};
+    device_path_info_list dev_path_info_list {};
 
     auto dev_info = SetupDiGetClassDevsA(&GUID_DEVINTERFACE_XDMA, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
     if (dev_info == INVALID_HANDLE_VALUE) {
@@ -72,22 +72,22 @@ device_path_list get_device_paths()
         slot = (addr >> 16) & 0xFFFF;
 
         // получим vendor и device id
-        std::string path { dev_detail->DevicePath };
+        device_path path { dev_detail->DevicePath };
         auto ven_id = uint32_t(std::stoi(path.substr(path.find("ven_") + 4, 4).data(), 0, 16));
         auto dev_id = uint32_t(std::stoi(path.substr(path.find("dev_") + 4, 4).data(), 0, 16));
 
-        dev_paths.emplace_back(dev_detail->DevicePath, device_info { ven_id, dev_id, bus, addr, slot });
+        dev_path_info_list.emplace_back(dev_detail->DevicePath, device_info { ven_id, dev_id, bus, addr, slot });
     }
     SetupDiDestroyDeviceInfoList(dev_info);
 
-    if (dev_paths.empty()) {
+    if (dev_path_info_list.empty()) {
         throw std::runtime_error("No PCIe boards");
     } else {
-        return dev_paths;
+        return dev_path_info_list;
     }
 }
 
-hal_xdma::hal_xdma(const std::string& path, const device_info& dev_info)
+hal_xdma::hal_xdma(const device_path& path, const device_info& dev_info)
 {
     // FIXME: if open error?
     for (auto num : { 0, 1, 2, 3 }) {

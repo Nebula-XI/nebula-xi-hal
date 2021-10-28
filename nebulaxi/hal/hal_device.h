@@ -32,18 +32,20 @@ struct device_file {
     mutable std::mutex mutex;
 };
 
-using device_path_list = std::vector<std::pair<const std::string, const device_info>>;
+using device_path = std::string;
+using device_path_info_list = std::vector<std::pair<const device_path, const device_info>>;
 
 using reg_offset = std::size_t;
 using reg_value = uint32_t;
 
-device_path_list get_device_paths() __attribute__((visibility("default")));
+class hal_device final {
 
-class hal_reg final {
-    inline static constexpr char io_name[] { "REG" };
+    inline static constexpr char io_name[] { "DEV" };
 
 public:
-    hal_reg() = delete;
+    hal_device() = delete;
+
+    static device_path_info_list get_path_info_list();
 
 #ifdef __linux__
     template <const char* io_name = io_name>

@@ -25,14 +25,14 @@ public:
     hal_xdma(hal_xdma&&) = default;
     hal_xdma& operator=(hal_xdma&&) = default;
 
-    hal_xdma(const std::string&, const device_info&);
+    hal_xdma(const device_path&, const device_info&);
     ~hal_xdma() noexcept;
 
     auto read(dma_channel, size_t size = 4096) const -> dma_buffer override;
     auto write(dma_channel, const dma_buffer&) const -> void override;
 };
 
-inline hal_dma::unique_ptr make_hal_xdma(const std::string& path, const device_info& dev_info)
+inline hal_dma::unique_ptr make_hal_xdma(const device_path& path, const device_info& dev_info)
 {
     return make_hal_dma<hal_xdma>(path, dev_info);
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nebulaxi/hal/hal_io.h"
+#include "nebulaxi/hal/hal_device.h""
 
 namespace nebulaxi {
 
@@ -31,7 +31,7 @@ public:
 };
 
 template <typename dma_type>
-hal_dma::unique_ptr make_hal_dma(const std::string& path, const device_info& dev_info)
+hal_dma::unique_ptr make_hal_dma(const device_path& path, const device_info& dev_info)
 {
     return std::make_unique<dma_type>(path, dev_info);
 }

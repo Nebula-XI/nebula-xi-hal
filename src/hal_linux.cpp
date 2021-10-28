@@ -4,7 +4,7 @@
 
 using namespace nebulaxi;
 
-void hal_pcie::open(const std::string& path, const device_info& dev_info)
+void hal_pcie::open(const device_path& path, const device_info& dev_info)
 {
     using namespace std::string_literals;
     auto control_name = path + "_control";
@@ -24,7 +24,7 @@ void hal_pcie::close() const noexcept
     }
 }
 
-void hal_axi::open(const std::string& path)
+void hal_axi::open(const device_path& path)
 {
     using namespace std::string_literals;
     auto user_name = path + "_user";
@@ -42,9 +42,9 @@ void hal_axi::close() const noexcept
     }
 }
 
-device_path_list get_device_paths()
+device_path_info_list hal_device::get_path_info_list()
 {
-    device_path_list dev_paths {};
+    device_path_info_list dev_path_info_list {};
 
     // перебор плат
     size_t index {};
@@ -79,17 +79,17 @@ device_path_list get_device_paths()
         if (result != 0)
             throw std::runtime_error("[ IOCTL ] Error get information");
 
-        dev_paths.emplace_back(dev_name,
+        dev_path_info_list.emplace_back(dev_name,
             device_info { xdma_ioc_info.vendor, xdma_ioc_info.device, xdma_ioc_info.bus, xdma_ioc_info.dev, xdma_ioc_info.func });
     }
-    if (dev_paths.empty()) {
+    if (dev_path_info_list.empty()) {
         throw std::runtime_error("No PCIe boards");
     } else {
-        return dev_paths;
+        return dev_path_info_list;
     }
 }
 
-hal_xdma::hal_xdma(const std::string& path, const device_info& dev_info)
+hal_xdma::hal_xdma(const device_path& path, const device_info& dev_info)
 {
     // FIXME: if open error?
     for (auto num : { 0, 1, 2, 3 }) {

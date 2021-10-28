@@ -1,12 +1,12 @@
 #pragma once
 
-#include "nebulaxi/hal/hal_io.h"
+#include "nebulaxi/hal/hal_device.h"
 
 namespace nebulaxi {
 
 namespace detail {
     struct pcie_data {
-        std::string dev_path {};
+        device_path dev_path {};
         device_info dev_info {};
         device_file file_control { -1, {} };
     };
@@ -15,7 +15,7 @@ namespace detail {
 class hal_pcie final {
     std::unique_ptr<detail::pcie_data> d_ptr { std::make_unique<detail::pcie_data>() };
 
-    void open(const std::string&, const device_info&);
+    void open(const device_path&, const device_info&);
     void close() const noexcept;
 
     inline static constexpr char io_name[] { "PCIE" };
@@ -29,7 +29,7 @@ public:
     hal_pcie(hal_pcie&&) = default;
     hal_pcie& operator=(hal_pcie&&) = default;
 
-    hal_pcie(const std::string& path, const device_info& dev_info) { open(path, dev_info); }
+    hal_pcie(const device_path& path, const device_info& dev_info) { open(path, dev_info); }
     ~hal_pcie() noexcept { close(); }
 
     auto get_vendor_id() const noexcept { return d_ptr->dev_info.vendor; }
@@ -41,7 +41,7 @@ public:
     void write(reg_offset, reg_value) const;
 };
 
-inline hal_pcie::unique_ptr make_hal_pcie(const std::string& path, const device_info& dev_info)
+inline hal_pcie::unique_ptr make_hal_pcie(const device_path& path, const device_info& dev_info)
 {
     return std::make_unique<hal_pcie>(path, dev_info);
 }

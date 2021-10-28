@@ -31,10 +31,11 @@ CTEST_TEARDOWN(nebulaxi_hal)
 
 CTEST2(nebulaxi_hal, axi)
 {
-    auto device_list = get_device_paths();
-    for (auto& device : device_list) {
-        std::cout << device.first.c_str() << std::endl;
+    auto device_path_info_list = hal_device::get_path_info_list();
+    if (device_path_info_list.empty()) {
+        ASSERT_FAIL();
     }
+    ASSERT_STR(device_path_info_list.at(0).first.c_str(), "/dev/xdma0");
 }
 
 int main(int argc, const char** argv)
