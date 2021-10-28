@@ -4,6 +4,7 @@
 
 namespace nebulaxi {
 
+// FIXME: Refactoring!
 enum class dma_channel {
     ch0,
     ch1,
@@ -24,6 +25,7 @@ public:
     hal_dma& operator=(hal_dma&&) = default;
     virtual ~hal_dma() noexcept = default;
 
+    // FIXME: Refactoring!
     virtual auto read(dma_channel, size_t) const -> dma_buffer = 0;
     virtual void write(dma_channel, const dma_buffer&) const = 0;
 };
