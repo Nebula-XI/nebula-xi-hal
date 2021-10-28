@@ -1,6 +1,6 @@
 #pragma once
 
-#ifdef __linux__
+#ifndef _WIN32
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
@@ -47,7 +47,7 @@ public:
 
     static device_path_info_list get_path_info_list();
 
-#ifdef __linux__
+#ifndef _WIN32
     template <const char* io_name = io_name>
     static reg_value read(const device_file& file, reg_offset offset)
     {
