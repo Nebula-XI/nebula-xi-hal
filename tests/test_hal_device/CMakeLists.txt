@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.19)
 
-project(nebula-xi-hal-axi-test)
+project(nebula-xi-hal-device-test)
 
 set(PROJECT_COMPILE_OPTIONS)
 set(PROJECT_COMPILE_DEFINES)
 set(PROJECT_LINK_LIBRARIES nebula-xi-hal)
 set(PROJECT_COMPILE_FEATURES cxx_std_17)
 
-add_executable(${PROJECT_NAME} test_hal_axi.cpp)
+add_executable(${PROJECT_NAME} test_hal_device.cpp)
 target_sources(${PROJECT_NAME} PRIVATE ${PROJECT_SOURCES})
 set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${PROJECT_INCLUDE_DIRS})
