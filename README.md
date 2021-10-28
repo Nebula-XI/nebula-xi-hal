@@ -1,4 +1,4 @@
-## Hardware Abstraction Layer (HAL)
+# Hardware Abstraction Layer (HAL)
 
 [![CMake](https://github.com/Nebula-XI/nebula-xi-hal/actions/workflows/cmake.yml/badge.svg)](https://github.com/Nebula-XI/nebula-xi-hal/actions/workflows/cmake.yml)
 
