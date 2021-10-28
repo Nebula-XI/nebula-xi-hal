@@ -48,10 +48,10 @@ CMake 3.21, Ninja 1.10.2, GCC 10.3
 ```c
     auto device_path_info_list = hal_device::get_path_info_list();
     for (auto& device_path_info : device_path_info_list) {
-        auto device_path_c_str = device_path_info_list.at(0).first.c_str();
-        auto device_info = device_path_info_list.at(0).second;
+        auto device_path = device_path_info.first;
+        auto device_info = device_path_info.second;
         std::cout << '\n' + std::string(36, '-') + '\n';
-        std::cout << "device path: " << device_path_c_str << '\n';
+        std::cout << "device path: " << device_path << '\n';
         std::cout << std::hex << std::setfill('0');
         std::cout << "vendor: 0x" << device_info.vendor << '\n';
         std::cout << "bus: 0x" << std::setw(2) << device_info.bus << '\n';
