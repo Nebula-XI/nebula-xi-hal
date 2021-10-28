@@ -1,5 +1,5 @@
-#include "nebulaxi/hal_axi.h"
-#include "nebulaxi/hal_pcie.h"
+#include "nebulaxi/hal/hal_axi.h"
+#include "nebulaxi/hal/hal_pcie.h"
 
 using namespace nebulaxi;
 

@@ -1,6 +1,6 @@
-#include "nebulaxi/hal_axi.h"
-#include "nebulaxi/hal_pcie.h"
-#include "nebulaxi/hal_xdma.h"
+#include "nebulaxi/hal/hal_axi.h"
+#include "nebulaxi/hal/hal_pcie.h"
+#include "nebulaxi/hal/hal_xdma.h"
 
 using namespace nebulaxi;
 
@@ -42,7 +42,7 @@ void hal_axi::close() const noexcept
     }
 }
 
-auto hal_xdma::get_device_paths() -> device_path_list
+device_path_list get_device_paths()
 {
     device_path_list dev_paths {};
 

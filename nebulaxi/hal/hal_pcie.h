@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nebulaxi/hal_io.h"
+#include "nebulaxi/hal/hal_io.h"
 
 namespace nebulaxi {
 
@@ -41,7 +41,7 @@ public:
     void write(reg_offset, reg_value) const;
 };
 
-hal_pcie::unique_ptr make_hal_pcie(const std::string& path, const device_info& dev_info)
+inline hal_pcie::unique_ptr make_hal_pcie(const std::string& path, const device_info& dev_info)
 {
     return std::make_unique<hal_pcie>(path, dev_info);
 }

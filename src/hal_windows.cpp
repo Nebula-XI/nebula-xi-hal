@@ -1,8 +1,6 @@
-
-
-#include "nebulaxi/hal_axi.h"
-#include "nebulaxi/hal_pcie.h"
-#include "nebulaxi/hal_xdma.h"
+#include "nebulaxi/hal/hal_axi.h"
+#include "nebulaxi/hal/hal_pcie.h"
+#include "nebulaxi/hal/hal_xdma.h"
 
 using namespace nebulaxi;
 
@@ -44,7 +42,7 @@ void hal_axi::close() const noexcept
 
 DEFINE_GUID(GUID_DEVINTERFACE_XDMA, 0x74c7e4a9, 0x6d5d, 0x4a70, 0xbc, 0x0d, 0x20, 0x69, 0x1d, 0xff, 0x9e, 0x9d);
 
-auto hal_xdma::get_device_paths() -> device_path_list
+device_path_list get_device_paths()
 {
     device_path_list dev_paths {};
 

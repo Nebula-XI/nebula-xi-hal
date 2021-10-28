@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nebulaxi/hal_io.h"
+#include "nebulaxi/hal/hal_io.h"
 
 namespace nebulaxi {
 

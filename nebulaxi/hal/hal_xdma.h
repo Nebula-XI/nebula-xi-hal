@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nebulaxi/hal_dma.h"
+#include "nebulaxi/hal/hal_dma.h"
 
 namespace nebulaxi {
 
@@ -10,8 +10,6 @@ namespace detail {
         std::array<device_file, 4> file_h2c { 1, {}, 1, {} }; // DMA Host To Card
     };
 }
-
-using device_path_list = std::vector<std::pair<const std::string, const device_info>>;
 
 class hal_xdma final : public hal_dma {
     std::unique_ptr<detail::xdma_data> m_dma { std::make_unique<detail::xdma_data>() };
@@ -27,8 +25,6 @@ public:
     hal_xdma(hal_xdma&&) = default;
     hal_xdma& operator=(hal_xdma&&) = default;
 
-    static auto get_device_paths() -> device_path_list;
-
     hal_xdma(const std::string&, const device_info&);
     ~hal_xdma() noexcept;
 
@@ -36,7 +32,7 @@ public:
     auto write(dma_channel, const dma_buffer&) const -> void override;
 };
 
-hal_dma::unique_ptr make_hal_xdma(const std::string& path, const device_info& dev_info)
+inline hal_dma::unique_ptr make_hal_xdma(const std::string& path, const device_info& dev_info)
 {
     return make_hal_dma<hal_xdma>(path, dev_info);
 }

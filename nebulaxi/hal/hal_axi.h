@@ -1,6 +1,6 @@
 #pragma once
 
-#include "nebulaxi/hal_io.h"
+#include "nebulaxi/hal/hal_io.h"
 
 namespace nebulaxi {
 
@@ -34,7 +34,7 @@ public:
     void write(reg_offset, reg_value) const;
 };
 
-hal_axi::unique_ptr make_hal_axi(const std::string& path)
+inline hal_axi::unique_ptr make_hal_axi(const std::string& path)
 {
     return std::make_unique<hal_axi>(path);
 }

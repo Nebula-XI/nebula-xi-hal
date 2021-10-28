@@ -20,6 +20,13 @@ else()
 endif()
 set(PROJECT_SOURCES ${PROJECT_SOURCES} ${PROJECT_SOURCE_DIR}/src/hal_common.cpp)
 
+option(NEBULAXI_HAL_TEST_VERBOSE "Verbose output nebula-xi-hal test." OFF)
+
+if(NEBULAXI_HAL_TEST_VERBOSE)
+    set(PROJECT_COMPILE_DEFINES ${PROJECT_COMPILE_DEFINES} NEBULAXI_HAL_TEST_VERBOSE)
+endif()
+
+
 add_library(${PROJECT_NAME} STATIC)
 target_sources(${PROJECT_NAME} PUBLIC ${PROJECT_SOURCES})
 
@@ -32,3 +39,10 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC ${PROJECT_COMPILE_DEFINES})
 target_compile_options(${PROJECT_NAME} PUBLIC ${PROJECT_COMPILE_OPTIONS})
 
 target_link_libraries(${PROJECT_NAME} ${PROJECT_LINK_LIBRARIES})
+
+option(NEBULAXI_HAL_BUILD_TEST "Build nebula-xi-hal test." OFF)
+
+if(NEBULAXI_HAL_BUILD_TEST)
+    enable_testing()
+    add_subdirectory(tests)
+endif()

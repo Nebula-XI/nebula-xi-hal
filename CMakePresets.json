@@ -12,6 +12,8 @@
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build/${presetName}",
       "cacheVariables": {
+        "NEBULAXI_HAL_BUILD_TEST": true,
+        "NEBULAXI_HAL_TEST_VERBOSE": true
       }
     },
     {
